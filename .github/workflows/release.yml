@@ -1,15 +1,16 @@
-name: Manual Build
+name: Release Build and Publish to GitHub Packages
+
 on:
-  workflow_dispatch:
-    inputs:
-      publish:
-        description: 'Manual Publish packages to GitHub Packages'
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'false'
-          - 'true'
+  push:
+    branches:
+      - main
+    paths:
+      - 'releases/**'
+  pull_request:
+    types:
+      - opened
+    branches:
+      - 'releases/**'
 
 permissions:
   contents: read
@@ -19,6 +20,7 @@ jobs:
   build-and-publish:
 
     runs-on: ubuntu-latest
+    environment: Release Lab
 
     steps:
 
@@ -74,7 +76,6 @@ jobs:
         path: ./artifacts/*.nupkg
 
     - name: Publish to GitHub Packages
-      if: startsWith(github.ref, 'refs/tags/v')
       run: |
         dotnet nuget push ./artifacts/*.nupkg \
           --api-key ${{ secrets.GITHUB_TOKEN }} \
