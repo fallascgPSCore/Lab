@@ -1,0 +1,79 @@
+name: Build and Publish to GitHub Packages
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Show .NET Info
+      run: dotnet --info
+
+    - name: Find Projects
+      run: find . -name "*.csproj"
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Pack
+      run: dotnet pack --configuration Release --no-build --output ./artifacts
+
+    - name: List Package Files
+      run: ls -R ./artifacts
+
+    - name: Inspect Package
+      run: |
+        for file in ./artifacts/*.nupkg
+        do
+          echo "=============================="
+          echo "PACKAGE: $file"
+          unzip -l "$file"
+          echo "=============================="
+        done
+
+    - name: Show Nuspec
+      run: |
+        for file in ./artifacts/*.nupkg
+        do
+          unzip -p "$file" "*.nuspec" || true
+        done
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-package
+        path: ./artifacts/*.nupkg
+
+    - name: Publish to GitHub Packages
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        dotnet nuget push ./artifacts/*.nupkg \
+          --api-key ${{ secrets.GITHUB_TOKEN }} \
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+          --skip-duplicate
