@@ -4,13 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'releases/**'
-  pull_request:
-    types:
-      - opened
-    branches:
-      - 'releases/**'
 
 permissions:
   contents: read
